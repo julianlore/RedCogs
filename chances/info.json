@@ -1,0 +1,17 @@
+{
+    "author" : [
+        "julianlore"
+    ],
+    "description" : "Cog for dares, chances that someone does something from 0 to a given number.",
+    "disabled" : false,
+    "end_user_data_statement" : "This cog does not persistently store data or metadata about users.",
+    "hidden" : false,
+    "install_msg" : "Usage: `[p]chances <user>`",
+    "name" : "Chances",
+    "permissions" : [],
+    "required_cogs" : {},
+    "requirements" : [],
+    "short" : "Chances to enact a dare",
+    "tags" : [],
+    "type" : "COG"
+}
