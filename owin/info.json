@@ -1,0 +1,17 @@
+{
+    "author" : [
+        "julianlore"
+    ],
+    "description" : "Cog for tracking Overwatch win rates.",
+    "disabled" : false,
+    "end_user_data_statement" : "This cog stores users' specified BattleTags and their games won/lost in Overwatch (in order to show relative changes in stats since the last refresh).\nUsers may clear this data at any time by command.",
+    "hidden" : false,
+    "install_msg" : "Usage: `[p]owin`",
+    "name" : "Owin",
+    "permissions" : [],
+    "required_cogs" : {},
+    "requirements" : [],
+    "short" : "Overwatch win rate tracker",
+    "tags" : [],
+    "type" : "COG"
+}
