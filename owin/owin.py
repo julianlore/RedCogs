@@ -29,6 +29,72 @@ class Owin(commands.Cog):
                 winPercent = round(qp["gamesWon"]/qp["gamesPlayed"] * 100, 3)
                 return [level, qp["gamesWon"], qp["gamesLost"], winPercent]
 
+    @staticmethod
+    async def format_stats_table(statsTable):
+        # Get max width of each column
+        maxWidthList = [len(stat) for stat in statsTable[0]]
+        for statsTableRow in statsTable:
+            for j in range(len(statsTableRow)):
+                maxWidthList[j] = max(maxWidthList[j], len(statsTableRow[j]))
+
+        # Format the table as a string
+        strTable = "```"
+        for i in range(len(statsTable)):
+            strTable += '\n'
+            for j in range(len(statsTable[i])):
+                # Add '|' as separators and left justify the max width
+                # of this column
+                strTable += f"|{statsTable[i][j]:<{maxWidthList[j]}}"
+            # Closing last separator
+            strTable += '|'
+            # Add a row of dashes to separate column header for
+            # first row
+            if i == 0:
+                # 1 dash for each column width (maxWidthList), 1 dash
+                # for each column (account for |) and 1 for closing |
+                strTable += '\n' + ((sum(maxWidthList)
+                    + len(maxWidthList) + 1) * '-')
+        strTable += "\n```"
+        return strTable
+
+    @staticmethod
+    async def refresh_stats(ctx: commands.Context, userstatsDict):
+        # Add a table and cumulate new stats with difference from old
+        # stats. Keep track of maximum width for each column.
+        statsTable = [["Player", "Level", "QP Wins", "QP Losses",
+            "QP Win %" ]]
+        for user, oldStatsList in userstatsDict.items():
+            try:
+                newStatsList = await Owin.get_data_for_user(ctx, user)
+                # Invalid old data, do not compare
+                if len(oldStatsList) != len(newStatsList):
+                    userstatsDict[user] = newStatsList
+                    # Add user as first column
+                    statsTable.append([user] + [str(stat) for stat in newStatsList])
+                    continue
+
+                curRow = [user]
+                for i in range(len(newStatsList)):
+                    # Get change since last refresh
+                    # Prefix positive changes with a +
+                    change = round(newStatsList[i] - oldStatsList[i], 3)
+                    if change > 0:
+                        sign = '+'
+                    else:
+                        sign = ''
+                    # No need to show a change if it is 0
+                    if change != 0:
+                        changeStr = f" ({sign}{str(change)})"
+                    else:
+                        changeStr = ''
+                    curRow.append(str(newStatsList[i]) + changeStr)
+                statsTable.append(curRow)
+                userstatsDict[user] = newStatsList
+            except ValueError:
+                continue # Error message sent in get_data_for_user
+        return await Owin.format_stats_table(statsTable)
+
+
     @commands.command()
     async def owin(self, ctx: commands.Context, *args) -> None:
         """Display Overwatch wins/losses and relative changes since last
@@ -38,64 +104,7 @@ class Owin(commands.Cog):
             if len(args) <= 0:
                 if not userstatsDict:
                     return await ctx.send("No players to track. Add BattleTags using the subcommand add. `[p]owin add <BattleTag>`")
-                # Add a table and cumulate new stats with difference from old
-                # stats. Keep track of maximum width for each column.
-                statsTable = [["Player", "Level", "QP Wins", "QP Losses", 
-                    "QP Win %" ]]
-                for user, oldStatsList in userstatsDict.items():
-                    try:
-                        newStatsList = await self.get_data_for_user(ctx, user)
-                        # Invalid old data, do not compare
-                        if len(oldStatsList) != len(newStatsList):
-                            userstatsDict[user] = newStatsList
-                            # Add user as first column
-                            statsTable.append([user] + [str(stat) for stat in newStatsList])
-                            continue
-                    
-                        curRow = [user]
-                        for i in range(len(newStatsList)):
-                            # Get change since last refresh
-                            # Prefix positive changes with a +
-                            change = newStatsList[i] - oldStatsList[i]
-                            if change > 0:
-                                sign = '+'
-                            else:
-                                sign = ''
-                            # No need to show a change if it is 0
-                            if change != 0:
-                                changeStr = f" ({sign}{str(change)})"
-                            else:
-                                changeStr = ''
-                            curRow.append(str(newStatsList[i]) + changeStr)
-                        statsTable.append(curRow)
-                        userstatsDict[user] = newStatsList
-                    except ValueError:
-                        continue # Error message sent in get_data_for_user
-
-                # Now get max width of each column
-                maxWidthList = [len(stat) for stat in statsTable[0]]
-                for statsTableRow in statsTable:
-                    for j in range(len(statsTableRow)):
-                        maxWidthList[j] = max(maxWidthList[j], len(statsTableRow[j]))
-
-                # Format the table as a string
-                strTable = "```"
-                for i in range(len(statsTable)):
-                    strTable += '\n'
-                    for j in range(len(statsTable[i])):
-                        # Add '|' as separators and left justify the max width
-                        # of this column
-                        strTable += f"|{statsTable[i][j]:<{maxWidthList[j]}}"
-                    # Closing last separator
-                    strTable += '|'
-                    # Add a row of dashes to separate column header for
-                    # first row
-                    if i == 0:
-                        # 1 dash for each column width (maxWidthList), 1 dash
-                        # for each column (account for |) and 1 for closing |
-                        strTable += '\n' + ((sum(maxWidthList)
-                            + len(maxWidthList) + 1) * '-')
-                strTable += "\n```"
+                strTable = await Owin.refresh_stats(ctx, userstatsDict)
                 return await ctx.send(strTable)
             command = args[0]
             if command == "add":
